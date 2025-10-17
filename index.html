@@ -1,1 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Phantom Forge — Ticket Transcripts</title>
+<meta name="color-scheme" content="dark light">
+<style>
+  :root {
+    --bg: #08000f;
+    --card: rgba(19, 0, 37, 0.85);
+    --line: #2a0b4d;
+    --muted: #a77fff;
+    --fg: #ffffff;
+    --brand: #8000ff;
+    --brand-glow: #a877ff;
+  }
 
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--fg);
+    font: 15px/1.5 'Inter', system-ui, sans-serif;
+    background: url('https://i.postimg.cc/zvsvYJGs/Schermafbeelding-2025-10-05-022559.png') center center / cover no-repeat fixed;
+    backdrop-filter: blur(3px);
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 40px auto;
+    padding: 0 16px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(128, 0, 255, 0.25);
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-top: 16px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-glow));
+    box-shadow: 0 0 12px var(--brand);
+  }
+
+  h1 {
+    font-size: 26px;
+    margin: 0;
+    font-weight: 700;
+    color: var(--brand-glow);
+    text-shadow: 0 0 10px rgba(128, 0, 255, 0.5);
+  }
+
+  .controls {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr 200px 220px 160px;
+    margin-bottom: 16px;
+  }
+
+  input[type="search"],
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--fg);
+    outline: none;
+    transition: 0.2s;
+  }
+
+  input[type="search"]:focus,
+  select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 6px var(--brand);
+  }
+
+  .list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 10px rgba(128, 0, 255, 0.4);
+  }
+
+  .title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--brand);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .title:hover {
+    color: var(--brand-glow);
+  }
+
+  .meta {
+    margin-top: 8px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    color: var(--muted);
+    background: rgba(128, 0, 255, 0.1);
+  }
+
+  .empty {
+    opacity: 0.7;
+    text-align: center;
+    padding: 28px;
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    margin-top: 16px;
+  }
+
+  footer {
+    opacity: 0.7;
+    color: var(--muted);
+    text-align: center;
+    margin: 30px 0 12px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 820px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 520px) {
+    .controls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true"></div>
+      <h1>Phantom Forge — Ticket Transcripts</h1>
+    </header>
+
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search by user / channel / guild …" autocomplete="off" />
+      <select id="guildFilter">
+        <option value="">All guilds</option>
+      </select>
+      <select id="userFilter">
+        <option value="">All users</option>
+      </select>
+      <select id="sort">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+      </select>
+    </div>
+
+    <div id="list" class="list"></div>
+    <div id="empty" class="empty" style="display:none;">No transcripts found (try clearing filters or search).</div>
+
+    <footer>
+      Made with 💜 by <strong>Phantom Forge</strong> — Theme <span style="color:#8000ff;">#8000FF</span>
+    </footer>
+  </div>
+
+<script>
+(async function(){
+  const listEl = document.getElementById('list');
+  const emptyEl = document.getElementById('empty');
+  const qEl = document.getElementById('q');
+  const guildEl = document.getElementById('guildFilter');
+  const userEl = document.getElementById('userFilter');
+  const sortEl = document.getElementById('sort');
+
+  let items = [];
+  try {
+    const res = await fetch('data/index.json', { cache: 'no-cache' });
+    items = await res.json();
+    if (!Array.isArray(items)) items = [];
+  } catch(e){
+    items = [];
+  }
+
+  const guilds = new Set(), users = new Map();
+  items.forEach(x => {
+    x.closedAt = Number(x.closedAt || 0);
+    x.channel = x.channel || '';
+    x.guild = x.guild || '';
+    x.userId = String(x.userId || '');
+    x.userTag = x.userTag || x.userId;
+    x.closedBy = x.closedBy || '';
+    if (!x.url && x.file) x.url = 'transcripts/' + x.file;
+    if (x.guild) guilds.add(x.guild);
+    if (x.userId) users.set(x.userId, x.userTag);
+  });
+
+  [...guilds].sort().forEach(g => {
+    const o = document.createElement('option');
+    o.value = g;
+    o.textContent = g;
+    guildEl.appendChild(o);
+  });
+  [...users.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id, tag]) => {
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = `${tag} (${id})`;
+    userEl.appendChild(o);
+  });
+
+  function render(){
+    const q = qEl.value.trim().toLowerCase();
+    const g = guildEl.value;
+    const u = userEl.value;
+    const sort = sortEl.value;
+    let rows = items.filter(x => {
+      if (g && x.guild !== g) return false;
+      if (u && x.userId !== u) return false;
+      if (!q) return true;
+      return JSON.stringify(x).toLowerCase().includes(q);
+    });
+    rows.sort((a,b) => sort === 'old' ? a.closedAt - b.closedAt : b.closedAt - a.closedAt);
+    listEl.innerHTML = '';
+    emptyEl.style.display = rows.length ? 'none' : '';
+    for (const x of rows){
+      const div = document.createElement('div');
+      div.className = 'card';
+      const when = x.closedAt ? new Date(x.closedAt).toLocaleString() : '—';
+      div.innerHTML = `
+        <a class="title" href="${x.url}" target="_blank" rel="noopener">${x.channel}</a>
+        <div class="meta">
+          <span class="pill">Guild: ${x.guild}</span>
+          <span class="pill">Closed: ${when}</span>
+          <span class="pill">Closed by: ${x.closedBy}</span>
+          <span class="pill">User: ${x.userTag} (${x.userId})</span>
+        </div>`;
+      listEl.appendChild(div);
+    }
+  }
+
+  qEl.addEventListener('input', render);
+  guildEl.addEventListener('change', render);
+  userEl.addEventListener('change', render);
+  sortEl.addEventListener('change', render);
+  render();
+})();
+</script>
+</body>
+</html>
